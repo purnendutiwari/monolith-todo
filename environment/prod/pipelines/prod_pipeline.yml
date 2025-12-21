@@ -1,0 +1,89 @@
+
+trigger:
+  - main
+
+
+pool:
+  name: my-agent-win
+
+stages:
+
+
+- stage: Validate
+  displayName: "Terraform Validate"
+  jobs:
+  - job: ValidateJob
+    displayName: "Validate Terraform Code"
+    steps:
+
+  
+    - checkout: self
+
+    - powershell: |
+        terraform --version
+      displayName: "Check Terraform Version"
+
+
+    - task: TerraformTaskV4@4
+      displayName: "Terraform Init"
+      inputs:
+        provider: azurerm
+        command: init
+        workingDirectory: $(System.DefaultWorkingDirectory)/environments/prod
+        backendServiceArm: azure-prod-svc
+        backendAzureRmResourceGroupName: tfstate-rg
+        backendAzureRmStorageAccountName: tfstateprod001
+        backendAzureRmContainerName: tfstate
+        backendAzureRmKey: prod/infra.tfstate
+
+   
+    - task: TerraformTaskV4@4
+      displayName: "Terraform Validate"
+      inputs:
+        provider: azurerm
+        command: validate
+        workingDirectory: $(System.DefaultWorkingDirectory)/environments/prod
+
+
+- stage: Plan
+  displayName: "Terraform Plan"
+  dependsOn: Validate
+  condition: succeeded()
+  jobs:
+  - job: PlanJob
+    displayName: "Show Terraform Changes"
+    steps:
+
+    
+    - task: TerraformTaskV4@4
+      displayName: "Terraform Plan"
+      inputs:
+        provider: azurerm
+        command: plan
+        workingDirectory: $(System.DefaultWorkingDirectory)/environments/prod
+        environmentServiceNameAzureRM: azure-prod-svc
+        commandOptions: "-var-file=prod.tfvars"
+
+
+- stage: Apply
+  displayName: "Terraform Apply"
+  dependsOn: Plan
+  condition: succeeded()
+  jobs:
+  - deployment: ApplyJob
+    displayName: "Apply Terraform Changes"
+    environment: prod   
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+         
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Apply"
+            inputs:
+              provider: azurerm
+              command: apply
+              workingDirectory: $(System.DefaultWorkingDirectory)/environments/prod
+              environmentServiceNameAzureRM: azure-prod-svc
+              commandOptions: "-auto-approve -var-file=prod.tfvars"
