@@ -1,7 +1,5 @@
-
 trigger:
   - main
-
 
 pool:
   name: my-agent-win
@@ -10,22 +8,12 @@ stages:
 
 
 - stage: Validate
-  displayName: "Terraform Validate"
   jobs:
-  - job: ValidateJob
-    displayName: "Validate Terraform Code"
+  - job: Validate
     steps:
-
-  
     - checkout: self
 
-    - powershell: |
-        terraform --version
-      displayName: "Check Terraform Version"
-
-
     - task: TerraformTaskV4@4
-      displayName: "Terraform Init"
       inputs:
         provider: azurerm
         command: init
@@ -36,9 +24,7 @@ stages:
         backendAzureRmContainerName: tfstate
         backendAzureRmKey: prod/infra.tfstate
 
-   
     - task: TerraformTaskV4@4
-      displayName: "Terraform Validate"
       inputs:
         provider: azurerm
         command: validate
@@ -46,17 +32,11 @@ stages:
 
 
 - stage: Plan
-  displayName: "Terraform Plan"
   dependsOn: Validate
-  condition: succeeded()
   jobs:
-  - job: PlanJob
-    displayName: "Show Terraform Changes"
+  - job: Plan
     steps:
-
-    
     - task: TerraformTaskV4@4
-      displayName: "Terraform Plan"
       inputs:
         provider: azurerm
         command: plan
@@ -66,21 +46,15 @@ stages:
 
 
 - stage: Apply
-  displayName: "Terraform Apply"
   dependsOn: Plan
-  condition: succeeded()
   jobs:
-  - deployment: ApplyJob
-    displayName: "Apply Terraform Changes"
-    environment: prod   
+  - deployment: Apply
+    environment: prod
     strategy:
       runOnce:
         deploy:
           steps:
-
-         
           - task: TerraformTaskV4@4
-            displayName: "Terraform Apply"
             inputs:
               provider: azurerm
               command: apply
