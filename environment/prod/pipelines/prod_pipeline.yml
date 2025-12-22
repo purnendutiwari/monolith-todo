@@ -13,7 +13,7 @@ stages:
     steps:
     - checkout: self
 
-    - task: TerraformTaskV4@4
+    - task: TerraformTaskV4@5
       inputs:
         provider: azurerm
         command: init
@@ -24,7 +24,7 @@ stages:
         backendAzureRmContainerName: tfstate
         backendAzureRmKey: prod/infra.tfstate
 
-    - task: TerraformTaskV4@4
+    - task: TerraformTaskV4@5
       inputs:
         provider: azurerm
         command: validate
@@ -54,7 +54,7 @@ stages:
       runOnce:
         deploy:
           steps:
-          - task: TerraformTaskV4@4
+          - task: TerraformTaskV4@5
             inputs:
               provider: azurerm
               command: apply
